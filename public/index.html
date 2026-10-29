@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineFinder | Tu universo de películas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --surface-color: #15171e;
+            --surface-hover: #1f2230;
+            --text-main: #ffffff;
+            --text-muted: #9ba1b0;
+            --accent: #e50914;
+            --navbar-height: 70px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; }
+
+        /* --- NAVBAR --- */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; height: var(--navbar-height);
+            background: rgba(11, 12, 16, 0.95); backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 4%; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .logo { font-size: 1.8rem; font-weight: 800; color: var(--accent); display: flex; align-items: center; gap: 10px; flex: 1; }
+        
+        .nav-center { position: relative; flex: 2; display: flex; justify-content: center; }
+        .search-box { display: flex; align-items: center; background: var(--surface-color); border-radius: 30px; padding: 5px 15px; border: 1px solid rgba(255,255,255,0.1); width: 100%; max-width: 500px; transition: all 0.3s; }
+        .search-box:focus-within { border-color: var(--accent); box-shadow: 0 0 15px rgba(229, 9, 20, 0.2); }
+        .search-box input { background: transparent; border: none; color: white; padding: 10px; width: 100%; outline: none; font-size: 1rem; }
+
+        #lista-resultados { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); width: 100%; max-width: 500px; background: var(--surface-color); border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.9); z-index: 2000; display: none; max-height: 400px; overflow-y: auto; }
+        .item-busqueda { display: flex; gap: 15px; padding: 10px 15px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center; transition: background 0.2s; }
+        .item-busqueda:hover { background: rgba(255,255,255,0.1); }
+        .item-busqueda img { width: 45px; height: 65px; object-fit: cover; border-radius: 5px; }
+        .item-busqueda h4 { margin: 0; font-size: 0.95rem; color: white; }
+        .item-busqueda span { color: var(--text-muted); font-size: 0.8rem; }
+
+        .nav-actions { display: flex; align-items: center; gap: 15px; flex: 1; justify-content: flex-end; }
+        .btn-nav { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 15px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-weight: 600; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .btn-nav:hover { background: rgba(255,255,255,0.1); border-color: var(--accent); }
+        .btn-nav.destacado { background: var(--accent); border-color: var(--accent); }
+
+        /* --- HERO SECTION --- */
+        .hero { height: 70vh; position: relative; display: flex; flex-direction: column; justify-content: center; padding: 0 4%; margin-top: var(--navbar-height); overflow: hidden; background-color: #0b0c10; }
+        .hero-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-size: cover; background-position: center 20%; opacity: 0; transition: opacity 1s ease-in-out; z-index: 0; }
+        .hero-bg.active { opacity: 1; }
+        .hero::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to right, rgba(11,12,16,1) 0%, rgba(11,12,16,0.8) 40%, rgba(11,12,16,0) 100%), linear-gradient(to top, var(--bg-color) 0%, transparent 40%); z-index: 1; }
+        
+        .hero-content { position: relative; z-index: 2; max-width: 600px; }
+        .hero h1 { font-size: 4rem; line-height: 1.1; margin-bottom: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        .hero p { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 25px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        
+        .hero-controls { display: flex; align-items: center; gap: 20px; }
+        .btn-hero { background: var(--accent); color: white; border: none; padding: 12px 25px; border-radius: 5px; font-size: 1.1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; }
+        .btn-hero:hover { background: #b80710; }
+        
+        .hero-dots { display: flex; gap: 8px; }
+        .dot { width: 20px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; transition: all 0.3s; cursor: pointer; }
+        .dot.active { width: 30px; background: var(--accent); }
+
+        /* --- FILTROS DE CATEGORÍA --- */
+        .filtros-container { padding: 20px 4% 0 4%; display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; position: relative; z-index: 3; }
+        .filtros-container::-webkit-scrollbar { display: none; }
+        .btn-filtro { background: var(--surface-color); color: var(--text-main); border: 1px solid rgba(255,255,255,0.1); padding: 8px 18px; border-radius: 20px; cursor: pointer; white-space: nowrap; font-weight: 600; transition: all 0.2s; }
+        .btn-filtro:hover { border-color: rgba(255,255,255,0.3); }
+        .btn-filtro.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+        /* --- SECCIONES Y CARRUSELES --- */
+        main { padding: 0 4%; padding-bottom: 50px; position: relative; z-index: 3; }
+        .section-title { font-size: 1.4rem; font-weight: 600; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 10px; }
+        
+        .carrusel-wrapper { position: relative; }
+        
+        .btn-carrusel {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 45px; height: 45px; background: rgba(0,0,0,0.7); color: white;
+            border: none; border-radius: 50%; font-size: 1.2rem; cursor: pointer;
+            z-index: 20; display: flex; justify-content: center; align-items: center;
+            transition: background 0.2s, opacity 0.3s;
+        }
+        .btn-carrusel:hover { background: var(--accent); }
+        .btn-carrusel.left { left: -20px; }
+        .btn-carrusel.right { right: -20px; }
+
+        .tendencias-grid { display: flex; gap: 15px; overflow-x: auto; scroll-behavior: smooth; padding: 10px 0; scrollbar-width: none; }
+        .tendencias-grid::-webkit-scrollbar { display: none; }
+
+        /* --- TARJETAS DE PELÍCULAS --- */
+        .tarjeta-peli { min-width: 220px; max-width: 220px; height: 330px; border-radius: 12px; overflow: hidden; position: relative; cursor: pointer; transition: transform 0.3s ease; background: #2a2d37; }
+        .tarjeta-peli img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
+        .tarjeta-peli:hover { transform: scale(1.05); z-index: 10; }
+        .tarjeta-peli:hover img { filter: brightness(0.6); }
+        
+        /* Efecto Hover: Oculto por defecto */
+        .tarjeta-info { 
+            position: absolute; bottom: 0; left: 0; right: 0; padding: 40px 15px 15px 15px; 
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%); 
+            display: flex; flex-direction: column; justify-content: flex-end; height: 100%; 
+            opacity: 0; transition: opacity 0.3s; 
+        }
+        .tarjeta-peli:hover .tarjeta-info { opacity: 1; }
+        
+        .tarjeta-info h4 { font-size: 1.2rem; margin-bottom: 5px; color: white; line-height: 1.2; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
+        
+        .tarjeta-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; width: 100%; }
+        .btn-ver-detalles { font-size: 0.85rem; color: #ccc; text-decoration: none; }
+        .rating-card { color: #f5c518; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+
+        .btn-fav-card { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); border: none; color: white; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; z-index: 5; opacity: 0; transition: all 0.2s; font-size: 1rem; }
+        .tarjeta-peli:hover .btn-fav-card { opacity: 1; }
+        .btn-fav-card:hover { background: var(--accent); }
+        .btn-fav-card.activo { color: var(--accent); opacity: 1; }
+
+        /* --- MODALES --- */
+        .modal-overlay { 
+            display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 2000; 
+            justify-content: center; align-items: center; padding: 20px; 
+            opacity: 0; pointer-events: none; transition: opacity 0.3s; 
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        
+        .modal-content { background: var(--surface-color); border-radius: 20px; width: 100%; max-width: 1000px; height: 85vh; display: flex; flex-wrap: wrap; position: relative; overflow: hidden; }
+        .close-btn { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; z-index: 10; }
+        .close-btn:hover { background: var(--accent); }
+        .modal-img { flex: 1; min-width: 350px; background-color: #000; }
+        .modal-img img { width: 100%; height: 100%; object-fit: cover; }
+        .modal-info { flex: 1.3; min-width: 350px; padding: 40px; display: flex; flex-direction: column; gap: 15px; height: 100%; overflow-y: auto; }
+        .tags { display: flex; gap: 10px; flex-wrap: wrap; }
+        .tag { background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+        .tag.rating { background: var(--accent); color: white; }
+        .desc { color: #d1d5db; line-height: 1.6; font-size: 0.95rem; }
+        .desc strong { color: white; }
+        .ia-resena { background: rgba(229, 9, 20, 0.1); border-left: 4px solid var(--accent); padding: 20px; border-radius: 0 10px 10px 0; margin-top: 10px; }
+        .ia-resena h3 { font-size: 1rem; color: var(--accent); margin-bottom: 10px; }
+        .ia-resena p { font-size: 0.95rem; line-height: 1.6; color: #e5e7eb; }
+
+        .video-modal { background: transparent; width: 90%; max-width: 1000px; position: relative; }
+        .video-modal iframe { width: 100%; aspect-ratio: 16/9; border-radius: 10px; border: none; }
+        .btn-close-video { position: absolute; top: -40px; right: 0; background: transparent; color: white; border: none; font-size: 2rem; cursor: pointer; }
+
+        /* --- CHAT IA --- */
+        .chat-toggle { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: var(--accent); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 20px rgba(229, 9, 20, 0.4); z-index: 1000; }
+        .chat-window { position: fixed; bottom: 100px; right: 30px; width: 350px; background: var(--surface-color); border-radius: 16px; display: flex; flex-direction: column; z-index: 1000; transform: translateY(20px); opacity: 0; pointer-events: none; transition: all 0.3s; }
+        .chat-window.active { transform: translateY(0); opacity: 1; pointer-events: all; }
+        .chat-header { padding: 15px 20px; background: var(--surface-hover); border-radius: 16px 16px 0 0; font-weight: 600; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .chat-body { padding: 20px; height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg { max-width: 85%; padding: 12px 16px; border-radius: 16px; font-size: 0.9rem; }
+        .msg-ia { background: var(--surface-hover); align-self: flex-start; }
+        .msg-user { background: var(--accent); align-self: flex-end; }
+        .chat-input-area { display: flex; padding: 15px; border-top: 1px solid rgba(255,255,255,0.05); gap: 10px; }
+        .chat-input-area input { flex: 1; background: var(--bg-color); border: none; color: white; padding: 12px; border-radius: 20px; outline: none; }
+        .chat-input-area button { background: var(--accent); color: white; border: none; width: 45px; border-radius: 50%; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo"><i class="fa-solid fa-film"></i> CineFinder</div>
+        <div class="nav-center">
+            <div class="search-box">
+                <input type="text" id="titulo" placeholder="Buscar película..." oninput="buscar()" autocomplete="off">
+                <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted);"></i>
+            </div>
+            <div id="lista-resultados"></div>
+        </div>
+        <div class="nav-actions">
+            <button class="btn-nav destacado" onclick="peliculaAleatoria()"><i class="fa-solid fa-dice"></i> Sorpréndeme</button>
+            <button class="btn-nav" onclick="scrollToFavoritos()"><i class="fa-solid fa-heart" style="color: var(--accent);"></i> Mis Favoritos</button>
+        </div>
+    </nav>
+
+    <!-- HERO CON BOTÓN Y PUNTOS -->
+    <section class="hero">
+        <div class="hero-bg" id="hero-bg-1"></div>
+        <div class="hero-bg" id="hero-bg-2"></div>
+        <div class="hero-content">
+            <h1>Descubre tu próxima película favorita.</h1>
+            <p>Explora tendencias, busca títulos y deja que nuestra Inteligencia Artificial te recomiende qué ver hoy.</p>
+            <div class="hero-controls">
+                <button class="btn-hero" id="btn-hero-play" onclick="abrirDetalles(peliculaHeroId)">
+                    <i class="fa-solid fa-play"></i> <span id="btn-hero-texto">Ver Ahora</span>
+                </button>
+                <div class="hero-dots" id="hero-dots"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FILTROS DE CATEGORÍA -->
+    <div class="filtros-container">
+        <button class="btn-filtro active" onclick="cambiarFiltro(this, '')">Todas</button>
+        <button class="btn-filtro" onclick="cambiarFiltro(this, '878')">Ciencia ficción</button>
+        <button class="btn-filtro" onclick="cambiarFiltro(this, '18')">Drama</button>
+        <button class="btn-filtro" onclick="cambiarFiltro(this, '53')">Thriller</button>
+        <button class="btn-filtro" onclick="cambiarFiltro(this, '28')">Acción</button>
+        <button class="btn-filtro" onclick="cambiarFiltro(this, '80')">Crimen</button>
+        <button class="btn-filtro" onclick="cambiarFiltro(this, '16')">Animación</button>
+        <button class="btn-filtro" onclick="cambiarFiltro(this, '35')">Comedia</button>
+    </div>
+
+    <main>
+        <div id="seccion-favoritos" style="display: none;">
+            <h2 class="section-title"><i class="fa-solid fa-heart" style="color: var(--accent);"></i> Mis Favoritos</h2>
+            <div class="carrusel-wrapper">
+                <button class="btn-carrusel left" onclick="scrollCarrusel('grid-favoritos', -1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="tendencias-grid" id="grid-favoritos"></div>
+                <button class="btn-carrusel right" onclick="scrollCarrusel('grid-favoritos', 1)"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
+
+        <!-- Carrusel Dinámico -->
+        <h2 class="section-title" id="titulo-carrusel"><i class="fa-solid fa-fire" style="color: var(--accent);"></i> Tendencias de la Semana</h2>
+        <div class="carrusel-wrapper">
+            <button class="btn-carrusel left" onclick="scrollCarrusel('grid-principal', -1)"><i class="fa-solid fa-chevron-left"></i></button>
+            <div class="tendencias-grid" id="grid-principal"></div>
+            <button class="btn-carrusel right" onclick="scrollCarrusel('grid-principal', 1)"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+
+        <h2 class="section-title"><i class="fa-solid fa-star" style="color: #f5c518;"></i> Las Mejor Valoradas</h2>
+        <div class="carrusel-wrapper">
+            <button class="btn-carrusel left" onclick="scrollCarrusel('grid-top', -1)"><i class="fa-solid fa-chevron-left"></i></button>
+            <div class="tendencias-grid" id="grid-top"></div>
+            <button class="btn-carrusel right" onclick="scrollCarrusel('grid-top', 1)"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+
+        <h2 class="section-title"><i class="fa-solid fa-calendar-days" style="color: #00d2ff;"></i> Próximos Estrenos</h2>
+        <div class="carrusel-wrapper">
+            <button class="btn-carrusel left" onclick="scrollCarrusel('grid-estrenos', -1)"><i class="fa-solid fa-chevron-left"></i></button>
+            <div class="tendencias-grid" id="grid-estrenos"></div>
+            <button class="btn-carrusel right" onclick="scrollCarrusel('grid-estrenos', 1)"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+    </main>
+
+    <!-- MODAL DETALLES -->
+    <div class="modal-overlay" id="modal-resultado">
+        <div class="modal-content">
+            <button class="close-btn" onclick="cerrarModal('modal-resultado')"><i class="fa-solid fa-xmark"></i></button>
+            <div class="modal-img"><img id="poster" src=""></div>
+            <div class="modal-info">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <h2 id="nombre" style="margin-right: 20px;"></h2>
+                    <button id="btn-fav-modal" onclick="toggleFavoritoActual()" style="background: none; border: none; color: #555; font-size: 1.8rem; cursor: pointer; transition: color 0.2s;"><i class="fa-solid fa-heart"></i></button>
+                </div>
+                <div class="tags">
+                    <span class="tag rating" id="anio"></span>
+                    <span class="tag" id="genero"></span>
+                    <span class="tag" id="calificacion-modal" style="background: rgba(255,255,255,0.1);"></span>
+                </div>
+                <p class="desc"><strong>Sinopsis:</strong> <span id="sinopsis"></span></p>
+                <p class="desc"><strong>Reparto:</strong> <span id="actores"></span></p>
+                <div id="trailer-container" style="margin-top: 10px;"></div>
+                <div id="streaming-container" style="margin-top: 10px; font-size: 0.9rem;"></div>
+                <div class="ia-resena">
+                    <h3><i class="fa-solid fa-robot"></i> Reseña generada por IA</h3>
+                    <p id="resena"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-video">
+        <div class="video-modal">
+            <button class="btn-close-video" onclick="cerrarTrailer()"><i class="fa-solid fa-circle-xmark"></i></button>
+            <iframe id="iframe-trailer" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <!-- CHAT IA -->
+    <div class="chat-toggle" onclick="toggleChat()"><i class="fa-solid fa-comment-dots"></i></div>
+    <div class="chat-window" id="chat-window">
+        <div class="chat-header"><span><i class="fa-solid fa-robot" style="color: var(--accent);"></i> CineBot IA</span><i class="fa-solid fa-chevron-down" style="cursor: pointer;" onclick="toggleChat()"></i></div>
+        <div class="chat-body" id="chat-mensajes"><div class="msg msg-ia">¡Hola! Soy tu crítico de cine. ¿Qué película buscas hoy?</div></div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Pregúntame algo..." onkeypress="if(event.key === 'Enter') preguntarIA()">
+            <button onclick="preguntarIA()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script>
+        let tiempoEspera;
+        let backdropsArray = [];
+        let backdropIndex = 0;
+        let fondoActivo = 1;
+        let peliculaHeroId = null; 
+        
+        let favoritos = JSON.parse(localStorage.getItem('cinefinder_favs')) || [];
+        let peliculaActual = null;
+
+        document.addEventListener("DOMContentLoaded", () => { 
+            cargarSeccion('tendencias', 'grid-principal', true); 
+            cargarSeccion('top', 'grid-top', false);
+            cargarSeccion('estrenos', 'grid-estrenos', false);
+            renderizarFavoritos();
+        });
+
+        function scrollCarrusel(id, direccion) {
+            const contenedor = document.getElementById(id);
+            if (!contenedor) return;
+            const scrollAmount = 235 * 3; 
+            contenedor.scrollBy({ left: scrollAmount * direccion, behavior: 'smooth' });
+        }
+
+        // --- CARGAR CARRUSELES Y FILTROS ---
+        async function cargarSeccion(tipo, gridId, esPrincipal = false, genero = '') {
+            const grid = document.getElementById(gridId);
+            try {
+                const queryParams = genero ? `?genero=${genero}` : '';
+                const res = await fetch(`/api/seccion/${tipo}${queryParams}`);
+                const pelis = await res.json();
+                grid.innerHTML = '';
+                
+                pelis.forEach(peli => {
+                    grid.appendChild(crearTarjeta(peli));
+                });
+
+                if (esPrincipal) {
+                    backdropsArray = pelis.map(p => ({ backdrop: p.backdrop, id: p.id, titulo: p.titulo })).filter(p => p.backdrop !== null);
+                    if (backdropsArray.length > 0) {
+                        actualizarHero(0); 
+                        iniciarRotacionHero();
+                        generarPuntitosHero();
+                    }
+                }
+            } catch (e) { console.error("Error", e); }
+        }
+
+        function cambiarFiltro(btn, generoId) {
+            document.querySelectorAll('.btn-filtro').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const titulo = document.getElementById('titulo-carrusel');
+            const textoBoton = btn.innerText;
+            titulo.innerHTML = generoId === '' ? `<i class="fa-solid fa-fire" style="color: var(--accent);"></i> Tendencias de la Semana` : `<i class="fa-solid fa-filter" style="color: var(--accent);"></i> Películas de ${textoBoton}`;
+
+            cargarSeccion('tendencias', 'grid-principal', true, generoId);
+        }
+
+        // --- LÓGICA DEL HERO DINÁMICO ---
+        function actualizarHero(index) {
+            if (backdropsArray.length === 0) return;
+            const peli = backdropsArray[index];
+            
+            const bgActivo = fondoActivo === 1 ? 'hero-bg-1' : 'hero-bg-2';
+            const bgInactivo = fondoActivo === 1 ? 'hero-bg-2' : 'hero-bg-1';
+            
+            document.getElementById(bgInactivo).style.backgroundImage = `url('${peli.backdrop}')`;
+            document.getElementById(bgInactivo).classList.add('active');
+            document.getElementById(bgActivo).classList.remove('active');
+            fondoActivo = fondoActivo === 1 ? 2 : 1;
+
+            peliculaHeroId = peli.id;
+            document.getElementById('btn-hero-texto').innerText = `Ver «${peli.titulo}»`;
+
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, i) => {
+                if (i === index) dot.classList.add('active');
+                else dot.classList.remove('active');
+            });
+        }
+
+        function iniciarRotacionHero() {
+            if (backdropsArray.length < 2) return;
+            setInterval(() => {
+                backdropIndex = (backdropIndex + 1) % backdropsArray.length;
+                actualizarHero(backdropIndex);
+            }, 6000);
+        }
+
+        function generarPuntitosHero() {
+            const dotsContainer = document.getElementById('hero-dots');
+            dotsContainer.innerHTML = '';
+            backdropsArray.forEach((_, i) => {
+                const dot = document.createElement('div');
+                dot.className = i === 0 ? 'dot active' : 'dot';
+                dot.onclick = () => {
+                    backdropIndex = i;
+                    actualizarHero(i);
+                };
+                dotsContainer.appendChild(dot);
+            });
+        }
+
+        // --- CREAR TARJETAS CON CALIFICACIÓN ---
+        function crearTarjeta(peli) {
+            const div = document.createElement('div');
+            div.className = 'tarjeta-peli';
+            div.onclick = (e) => { if(!e.target.closest('.btn-fav-card')) abrirDetalles(peli.id); };
+
+            const esFav = favoritos.some(f => f.id === peli.id);
+            const claseFav = esFav ? 'activo' : '';
+            const rating = peli.calificacion ? peli.calificacion : 'N/A';
+
+            div.innerHTML = `
+                <button class="btn-fav-card ${claseFav}" onclick="toggleFavorito(event, ${JSON.stringify(peli).replace(/"/g, '&quot;')})">
+                    <i class="fa-solid fa-heart"></i>
+                </button>
+                <img src="${peli.imagen}" alt="${peli.titulo}">
+                <div class="tarjeta-info">
+                    <h4>${peli.titulo}</h4>
+                    <div class="tarjeta-footer">
+                        <span class="btn-ver-detalles">Ver detalles</span>
+                        <div class="rating-card"><i class="fa-solid fa-star"></i> ${rating}</div>
+                    </div>
+                </div>
+            `;
+            return div;
+        }
+
+        // --- FAVORITOS ---
+        function toggleFavorito(event, peli) {
+            event.stopPropagation();
+            const index = favoritos.findIndex(f => f.id === peli.id);
+            if (index > -1) favoritos.splice(index, 1);
+            else favoritos.push(peli);
+            localStorage.setItem('cinefinder_favs', JSON.stringify(favoritos));
+            
+            renderizarFavoritos();
+            document.getElementById('grid-principal').innerHTML = '';
+            document.getElementById('grid-top').innerHTML = '';
+            document.getElementById('grid-estrenos').innerHTML = '';
+            const generoActivo = document.querySelector('.btn-filtro.active').getAttribute('onclick').match(/'(\d*)'/)[1];
+            cargarSeccion('tendencias', 'grid-principal', true, generoActivo);
+            cargarSeccion('top', 'grid-top', false);
+            cargarSeccion('estrenos', 'grid-estrenos', false);
+            
+            if(peliculaActual && peliculaActual.id === peli.id) actualizarBotonFavModal();
+        }
+
+        function renderizarFavoritos() {
+            const secFavs = document.getElementById('seccion-favoritos');
+            const gridFavs = document.getElementById('grid-favoritos');
+            if (favoritos.length === 0) { secFavs.style.display = 'none'; return; }
+            secFavs.style.display = 'block';
+            gridFavs.innerHTML = '';
+            favoritos.forEach(peli => gridFavs.appendChild(crearTarjeta(peli)));
+        }
+
+        function toggleFavoritoActual() { if(peliculaActual) toggleFavorito({stopPropagation:()=>{}}, peliculaActual); }
+        function actualizarBotonFavModal() {
+            const btn = document.getElementById('btn-fav-modal');
+            const esFav = favoritos.some(f => f.id === peliculaActual.id);
+            btn.style.color = esFav ? 'var(--accent)' : '#555';
+        }
+        function scrollToFavoritos() {
+            if(favoritos.length === 0) return alert("Aún no tienes favoritos.");
+            document.getElementById('seccion-favoritos').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- SORPRÉNDEME Y BUSCADOR ---
+        async function peliculaAleatoria() {
+            try {
+                const res = await fetch('/api/aleatoria');
+                const data = await res.json();
+                abrirDetalles(data.id);
+            } catch (e) { alert("Error al buscar sorpresa"); }
+        }
+
+        async function buscar() {
+            const query = document.getElementById('titulo').value;
+            const listaDiv = document.getElementById('lista-resultados');
+            if (!query.trim()) { listaDiv.style.display = 'none'; return; }
+            clearTimeout(tiempoEspera);
+
+            tiempoEspera = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/buscar?q=${encodeURIComponent(query)}`);
+                    const pelis = await res.json();
+                    listaDiv.innerHTML = '';
+                    if (pelis.length === 0) listaDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #aaa;">No se encontraron resultados</div>';
+                    else {
+                        pelis.forEach(peli => {
+                            const item = document.createElement('div');
+                            item.className = 'item-busqueda';
+                            item.onclick = (e) => {
+                                e.stopPropagation(); 
+                                listaDiv.style.display = 'none'; 
+                                document.getElementById('titulo').value = ''; 
+                                abrirDetalles(peli.id); 
+                            };
+                            item.innerHTML = `<img src="${peli.imagen}"><div><h4>${peli.titulo}</h4><span>${peli.anio}</span></div>`;
+                            listaDiv.appendChild(item);
+                        });
+                    }
+                    listaDiv.style.display = 'block';
+                } catch (error) { console.error(error); }
+            }, 400);
+        }
+
+        // --- MODAL DETALLES Y TRAILER ---
+        async function abrirDetalles(idTmdb) {
+            document.getElementById('lista-resultados').style.display = 'none';
+            document.getElementById('modal-resultado').classList.add('active');
+
+            try {
+                const res = await fetch(`/api/pelicula/detalles/${idTmdb}`);
+                const data = await res.json();
+                peliculaActual = data;
+
+                document.getElementById('poster').src = data.imagen;
+                document.getElementById('nombre').innerText = data.titulo;
+                document.getElementById('anio').innerText = data.anio;
+                document.getElementById('genero').innerText = data.genero;
+                document.getElementById('sinopsis').innerText = data.sinopsis;
+                document.getElementById('actores').innerText = data.actores;
+                document.getElementById('resena').innerText = data.resenaIA;
+                
+                if(document.getElementById('calificacion-modal')) {
+                    document.getElementById('calificacion-modal').innerHTML = `<i class="fa-solid fa-star" style="color:#f5c518"></i> ${data.calificacion || 'N/A'}`;
+                }
+
+                actualizarBotonFavModal();
+
+                const trailerDiv = document.getElementById('trailer-container');
+                if (data.trailerKey) {
+                    trailerDiv.innerHTML = `<button onclick="verTrailer('${data.trailerKey}')" style="background: #e50914; color: white; padding: 10px 20px; border-radius: 5px; border:none; cursor:pointer; font-weight: bold; font-size:1rem;"><i class="fa-brands fa-youtube"></i> Ver Trailer</button>`;
+                } else { trailerDiv.innerHTML = ''; }
+
+                const streamingDiv = document.getElementById('streaming-container');
+                if (data.streaming && (data.streaming.flatrate.length > 0 || data.streaming.rent.length > 0)) {
+                    let html = `<p style="margin-bottom: 5px;"><strong>Disponible en:</strong></p>`;
+                    const generarLink = (prov, titulo) => {
+                        const p = prov.toLowerCase(); const q = encodeURIComponent(titulo);
+                        if (p.includes('netflix')) return `https://www.netflix.com/search?q=${q}`;
+                        if (p.includes('prime') || p.includes('amazon')) return `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${q}`;
+                        if (p.includes('disney')) return `https://www.disneyplus.com/search?q=${q}`;
+                        if (p.includes('max') || p.includes('hbo')) return `https://play.max.com/search?q=${q}`;
+                        return `https://www.google.com/search?q=ver+${q}+en+${p}`;
+                    };
+                    const btnStyle = "background: #2a2d37; padding: 6px 12px; border-radius: 6px; margin-right: 8px; margin-bottom: 8px; display: inline-block; color: white; text-decoration: none; font-size: 0.85rem;";
+                    data.streaming.flatrate.forEach(prov => html += `<a href="${generarLink(prov, data.titulo)}" target="_blank" style="${btnStyle}">Ver en ${prov}</a>`);
+                    data.streaming.rent.forEach(prov => html += `<a href="${generarLink(prov, data.titulo)}" target="_blank" style="${btnStyle}">Alquilar en ${prov}</a>`);
+                    streamingDiv.innerHTML = html;
+                } else { streamingDiv.innerHTML = ''; }
+            } catch (error) { alert("Error al cargar detalles"); }
+        }
+
+        function cerrarModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function verTrailer(key) {
+            document.getElementById('iframe-trailer').src = `https://www.youtube.com/embed/${key}?autoplay=1`;
+            document.getElementById('modal-video').classList.add('active');
+        }
+        function cerrarTrailer() {
+            document.getElementById('iframe-trailer').src = ''; 
+            document.getElementById('modal-video').classList.remove('active');
+        }
+
+        // --- CHAT ---
+        function toggleChat() { document.getElementById('chat-window').classList.toggle('active'); }
+        async function preguntarIA() {
+            const input = document.getElementById('chat-input');
+            const pregunta = input.value.trim(); if (!pregunta) return;
+            const mensajes = document.getElementById('chat-mensajes');
+            mensajes.innerHTML += `<div class="msg msg-user">${pregunta}</div>`; input.value = '';
+            mensajes.scrollTop = mensajes.scrollHeight;
+            const tempId = 'temp-' + Date.now();
+            mensajes.innerHTML += `<div class="msg msg-ia" id="${tempId}"><i class="fa-solid fa-ellipsis fa-fade"></i></div>`;
+            try {
+                const res = await fetch('/api/preguntar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pregunta }) });
+                const data = await res.json();
+                document.getElementById(tempId).innerText = data.respuesta;
+                mensajes.scrollTop = mensajes.scrollHeight;
+            } catch (e) { document.getElementById(tempId).innerText = "Error."; }
+        }
+
+        document.addEventListener('click', function(event) {
+            const lista = document.getElementById('lista-resultados');
+            const searchBox = document.querySelector('.search-box');
+            if (lista && !lista.contains(event.target) && !searchBox.contains(event.target)) lista.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
